@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # jtok PreToolUse hook for Read tool
-# Intercepts .json file reads: reads file, compresses via jtok, blocks Read and delivers compressed content
+# Intercepts .json file reads: compresses via jtok, blocks Read and delivers compressed content
 # Fail-open: all error paths exit 0
 
 JTOK_PATH="__JTOK_PATH__"
@@ -8,7 +8,8 @@ JTOK_PATH="__JTOK_PATH__"
 {
     input=$(cat)
 
-    file_path=$(echo "$input" | python3 -c "import sys,json; print(json.load(sys.stdin).get('tool_input',{}).get('file_path',''))" 2>/dev/null)
+    # Extract file_path with grep (avoids python subprocess for parsing)
+    file_path=$(echo "$input" | grep -oP '"file_path"\s*:\s*"\K[^"]+')
     [ -z "$file_path" ] && exit 0
 
     # Only process .json files
@@ -22,30 +23,33 @@ JTOK_PATH="__JTOK_PATH__"
 
     # Skip small files
     file_size=$(wc -c < "$file_path")
-    [ "$file_size" -lt 200 ] && exit 0
+    file_size=${file_size// /}
+    [ "${file_size:-0}" -lt 200 ] && exit 0
 
     # Run jtok
-    result=$(python3 "$JTOK_PATH" "$file_path" 2>/dev/null)
+    result=$(python "$JTOK_PATH" "$file_path" 2>/dev/null)
     [ $? -ne 0 ] && exit 0
     [ -z "$result" ] && exit 0
 
-    # Read raw file
-    raw=$(cat "$file_path")
-
     result_len=${#result}
-    raw_len=${#raw}
 
     # If no savings, let Read proceed
-    [ "$result_len" -ge "$raw_len" ] && exit 0
+    [ "$result_len" -ge "$file_size" ] && exit 0
 
-    savings_pct=$(( (raw_len - result_len) * 100 / raw_len ))
+    savings_pct=$(( (file_size - result_len) * 100 / file_size ))
 
-    # Escape result for JSON
-    escaped=$(echo "$result" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))" 2>/dev/null)
-
-    cat <<EOFJ
-{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"[jtok] File read OK, compressed ${savings_pct}%","additionalContext":${escaped}}}
-EOFJ
+    # Build JSON output (python needed for safe JSON string encoding)
+    python -c "
+import json, sys
+result = sys.stdin.read()
+print(json.dumps({
+    'hookSpecificOutput': {
+        'hookEventName': 'PreToolUse',
+        'permissionDecision': 'deny',
+        'permissionDecisionReason': '[jtok] Compressed ${savings_pct}% (${file_size}B -> ${result_len}B)',
+        'additionalContext': result
+    }
+}))" <<< "$result"
     exit 0
 } 2>/dev/null
 

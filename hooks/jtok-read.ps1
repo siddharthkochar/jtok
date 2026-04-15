@@ -46,7 +46,7 @@ try {
         hookSpecificOutput = @{
             hookEventName = "PreToolUse"
             permissionDecision = "deny"
-            permissionDecisionReason = "[jtok] File read OK, compressed $savingsPct%"
+            permissionDecisionReason = "[jtok] Compressed $savingsPct% ($($raw.Length)B -> $($resultStr.Length)B)"
             additionalContext = $resultStr
         }
     } | ConvertTo-Json -Compress -Depth 5

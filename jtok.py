@@ -21,7 +21,6 @@ import json
 import sys
 import os
 import shutil
-import platform
 import argparse
 from pathlib import Path
 from typing import Any, Optional, Union
@@ -542,9 +541,6 @@ def _get_jtok_path() -> str:
     return str(Path(__file__).resolve())
 
 
-def _is_windows() -> bool:
-    return platform.system() == "Windows"
-
 
 def _read_settings() -> dict:
     """Read Claude Code settings.json."""
@@ -574,13 +570,9 @@ def cmd_install() -> None:
 
     jtok_path = _get_jtok_path()
 
-    # Determine hook script extension
-    if _is_windows():
-        read_hook_name = "jtok-read.ps1"
-        mcp_hook_name = "jtok-mcp.ps1"
-    else:
-        read_hook_name = "jtok-read.sh"
-        mcp_hook_name = "jtok-mcp.sh"
+    # Always use bash hooks — Claude Code runs in bash on all platforms
+    read_hook_name = "jtok-read.sh"
+    mcp_hook_name = "jtok-mcp.sh"
 
     # Copy hook scripts
     src_hooks_dir = Path(__file__).resolve().parent / "hooks"
@@ -608,8 +600,7 @@ def cmd_install() -> None:
         "matcher": "Read",
         "hooks": [{
             "type": "command",
-            "command": f"powershell -NoProfile -File '{hooks_dir_str}/{read_hook_name}'" if _is_windows()
-                       else f"bash '{hooks_dir_str}/{read_hook_name}'"
+            "command": f"bash '{hooks_dir_str}/{read_hook_name}'"
         }],
         "_source": "jtok"
     }
@@ -619,8 +610,7 @@ def cmd_install() -> None:
         "matcher": "mcp__",
         "hooks": [{
             "type": "command",
-            "command": f"powershell -NoProfile -File '{hooks_dir_str}/{mcp_hook_name}'" if _is_windows()
-                       else f"bash '{hooks_dir_str}/{mcp_hook_name}'"
+            "command": f"bash '{hooks_dir_str}/{mcp_hook_name}'"
         }],
         "_source": "jtok"
     }
@@ -694,7 +684,7 @@ def cmd_status() -> None:
     print()
 
     # Check hook files
-    for name in ["jtok-read.ps1", "jtok-mcp.ps1"]:
+    for name in ["jtok-read.sh", "jtok-mcp.sh"]:
         p = hooks_dir / name
         status = "installed" if p.exists() else "not found"
         print(f"  {name}: {status}")
