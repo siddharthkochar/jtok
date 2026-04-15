@@ -32,4 +32,4 @@ python3 "$INSTALL_DIR/jtok.py" install
 
 echo ""
 echo "Done! jtok is now active in Claude Code."
-echo "Run 'python3 $INSTALL_DIR/jtok.py status' to verify."
+echo "Run 'jtok status' to verify."

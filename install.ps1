@@ -32,4 +32,4 @@ Write-Host "  Configuring Claude Code hooks..."
 
 Write-Host ""
 Write-Host "Done! jtok is now active in Claude Code."
-Write-Host "Run 'python $INSTALL_DIR\jtok.py status' to verify."
+Write-Host "Run 'jtok status' to verify."
