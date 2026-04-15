@@ -7,9 +7,25 @@ Standalone utility that auto-detects JSON structure and converts to the most tok
 - **Fail-safe** — returns original content if savings < 15% or input < 200 bytes
 - **Claude Code hooks** — automatic compression for file reads and MCP responses
 
-## Quick Install (Claude Code)
+## Install
 
-One command to install and configure jtok with Claude Code:
+```bash
+pip install git+https://github.com/siddharthkochar/jtok.git
+```
+
+Or clone and install locally:
+
+```bash
+git clone https://github.com/siddharthkochar/jtok.git
+cd jtok
+pip install .
+```
+
+> **Prerequisite:** Python 3.8+ must be installed. Get it from [python.org](https://www.python.org/downloads/).
+
+### Quick Install (Claude Code hooks)
+
+One command to install jtok and configure Claude Code hooks:
 
 **macOS / Linux:**
 ```bash
@@ -21,30 +37,28 @@ curl -fsSL https://raw.githubusercontent.com/siddharthkochar/jtok/main/install.s
 irm https://raw.githubusercontent.com/siddharthkochar/jtok/main/install.ps1 | iex
 ```
 
-> **Prerequisite:** Python 3.8+ must be installed. Get it from [python.org](https://www.python.org/downloads/).
-
 This downloads jtok to `~/.claude/jtok/`, installs hooks into `~/.claude/settings.json`, and starts compressing JSON automatically in Claude Code.
 
-To uninstall: `python3 ~/.claude/jtok/jtok.py uninstall`
+To uninstall: `jtok uninstall`
 
 ## Usage
 
 ```bash
 # Auto-detect format (pipe or file arg)
-cat data.json | python jtok.py
-python jtok.py data.json
+cat data.json | jtok
+jtok data.json
 
 # Force a specific format
-python jtok.py --format csv data.json
+jtok --format csv data.json
 
 # Show structure only (no values)
-python jtok.py --schema data.json
+jtok --schema data.json
 
 # Sample large arrays (first/last N items)
-python jtok.py --sample 5 large.json
+jtok --sample 5 large.json
 
 # Show token savings stats
-python jtok.py --stats data.json
+jtok --stats data.json
 ```
 
 ## Formats
@@ -337,7 +351,7 @@ jtok applies compact formatting to individual values:
 Show structure without values — useful for understanding large JSON files.
 
 ```bash
-$ python jtok.py --schema data.json
+$ jtok --schema data.json
 [3 items]
   name: str
   age: int
@@ -352,7 +366,7 @@ $ python jtok.py --schema data.json
 For large arrays, show only the first and last N items:
 
 ```bash
-$ python jtok.py --sample 2 large.json
+$ jtok --sample 2 large.json
 name,age,city
 Alice,30,Paris
 Bob,25,Tokyo
@@ -366,7 +380,7 @@ Zara,33,Dubai
 Show byte and token savings:
 
 ```bash
-$ python jtok.py --stats data.json
+$ jtok --stats data.json
 format=csv raw=1250B compressed=480B savings=61.6%
 tokens: raw~312 compressed~120 saved~61.5%
 ---
@@ -390,17 +404,17 @@ See [Quick Install](#quick-install-claude-code) above for the recommended one-co
 
 ```bash
 # Check hook status
-python3 ~/.claude/jtok/jtok.py status
+jtok status
 ```
 
 ### Uninstall
 
 ```bash
 # macOS / Linux
-python3 ~/.claude/jtok/jtok.py uninstall
+jtok uninstall
 
 # Windows (PowerShell)
-python $HOME\.claude\jtok\jtok.py uninstall
+jtok uninstall
 ```
 
 Hooks are **fail-open** — if jtok errors or savings are below threshold, the original content passes through unchanged. Ships with both PowerShell (Windows) and bash (macOS/Linux) hooks.

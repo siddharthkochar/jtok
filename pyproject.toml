@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jtok"
+version = "0.1.0"
+description = "JSON to Token-Efficient Format Converter for LLM context windows"
+requires-python = ">=3.8"
+license = "MIT"
+
+[project.scripts]
+jtok = "jtok:main"
+
+[tool.setuptools]
+py-modules = ["jtok"]

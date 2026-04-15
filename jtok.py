@@ -5,15 +5,15 @@ Standalone utility that auto-detects JSON structure and converts to the most
 token-efficient format (CSV, KV, or TOON). Designed for LLM context windows.
 
 Usage:
-    cat data.json | python jtok.py          # auto-detect, pipe
-    python jtok.py file.json                # file arg
-    python jtok.py --format csv data.json   # force format
-    python jtok.py --schema data.json       # structure only
-    python jtok.py --sample 5 large.json    # first/last 5
-    python jtok.py --stats data.json        # show savings %
-    python jtok.py install                  # install Claude Code hooks
-    python jtok.py uninstall                # remove hooks
-    python jtok.py status                   # show hook status
+    cat data.json | jtok                    # auto-detect, pipe
+    jtok file.json                          # file arg
+    jtok --format csv data.json             # force format
+    jtok --schema data.json                 # structure only
+    jtok --sample 5 large.json              # first/last 5
+    jtok --stats data.json                  # show savings %
+    jtok install                            # install Claude Code hooks
+    jtok uninstall                          # remove hooks
+    jtok status                             # show hook status
 """
 
 import json
