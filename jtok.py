@@ -574,6 +574,13 @@ def cmd_install() -> None:
     read_hook_name = "jtok-read.sh"
     mcp_hook_name = "jtok-mcp.sh"
 
+    # Clean up legacy PowerShell hooks from previous installs
+    for legacy in ["jtok-read.ps1", "jtok-mcp.ps1"]:
+        p = hooks_dir / legacy
+        if p.exists():
+            p.unlink()
+            print(f"  Removed legacy {legacy}")
+
     # Copy hook scripts
     src_hooks_dir = Path(__file__).resolve().parent / "hooks"
     for hook_name in [read_hook_name, mcp_hook_name]:
