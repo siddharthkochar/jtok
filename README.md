@@ -7,6 +7,26 @@ Standalone utility that auto-detects JSON structure and converts to the most tok
 - **Fail-safe** — returns original content if savings < 15% or input < 200 bytes
 - **Claude Code hooks** — automatic compression for file reads and MCP responses
 
+## Quick Install (Claude Code)
+
+One command to install and configure jtok with Claude Code:
+
+**macOS / Linux:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/siddharthkochar/jtok/main/install.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/siddharthkochar/jtok/main/install.ps1 | iex
+```
+
+> **Prerequisite:** Python 3.8+ must be installed. Get it from [python.org](https://www.python.org/downloads/).
+
+This downloads jtok to `~/.claude/jtok/`, installs hooks into `~/.claude/settings.json`, and starts compressing JSON automatically in Claude Code.
+
+To uninstall: `python3 ~/.claude/jtok/jtok.py uninstall`
+
 ## Usage
 
 ```bash
@@ -362,18 +382,28 @@ jtok ships with hooks that automatically compress JSON for [Claude Code](https:/
 - **PreToolUse (Read)** — intercepts `.json` file reads, delivers compressed content
 - **PostToolUse (MCP)** — compresses MCP tool JSON responses
 
+### Install
+
+See [Quick Install](#quick-install-claude-code) above for the recommended one-command setup.
+
+### Manage
+
 ```bash
-# Install hooks into ~/.claude/settings.json
-python jtok.py install
-
 # Check hook status
-python jtok.py status
-
-# Remove hooks
-python jtok.py uninstall
+python3 ~/.claude/jtok/jtok.py status
 ```
 
-Hooks are **fail-open** — if jtok errors or savings are below threshold, the original content passes through unchanged. Currently ships with PowerShell hooks (Windows); bash hooks for Linux/macOS coming soon.
+### Uninstall
+
+```bash
+# macOS / Linux
+python3 ~/.claude/jtok/jtok.py uninstall
+
+# Windows (PowerShell)
+python $HOME\.claude\jtok\jtok.py uninstall
+```
+
+Hooks are **fail-open** — if jtok errors or savings are below threshold, the original content passes through unchanged. Ships with both PowerShell (Windows) and bash (macOS/Linux) hooks.
 
 ## How It Works
 
