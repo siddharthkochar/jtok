@@ -10,7 +10,8 @@ Usage:
     jtok --format csv data.json             # force format
     jtok --schema data.json                 # structure only
     jtok --sample 5 large.json              # first/last 5
-    jtok --stats data.json                  # show savings %
+    jtok --stats data.json                  # show savings % for file
+    jtok --stats                             # show lifetime savings
     jtok install                            # install Claude Code hooks
     jtok uninstall                          # remove hooks
     jtok status                             # show hook status
@@ -164,6 +165,84 @@ def _check_savings(raw_text: str, compressed: str) -> bool:
         return False
     savings = (1 - len(compressed) / len(raw_text)) * 100
     return savings >= MIN_SAVINGS_PCT
+
+
+# ---------------------------------------------------------------------------
+# Lifetime stats persistence
+# ---------------------------------------------------------------------------
+
+STATS_FILE = Path.home() / ".jtok" / "stats.json"
+
+
+def _load_stats() -> dict:
+    """Load lifetime stats from disk."""
+    if not STATS_FILE.exists():
+        return {"formats": {}, "total_raw": 0, "total_compressed": 0, "total_calls": 0}
+    try:
+        return json.loads(STATS_FILE.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {"formats": {}, "total_raw": 0, "total_compressed": 0, "total_calls": 0}
+
+
+def _save_stats(stats: dict):
+    """Write lifetime stats to disk."""
+    try:
+        STATS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        STATS_FILE.write_text(json.dumps(stats), encoding="utf-8")
+    except OSError:
+        pass  # fail-open: don't break compression if stats can't be saved
+
+
+def record_stats(fmt: str, raw_bytes: int, compressed_bytes: int):
+    """Record a single compression event to lifetime stats."""
+    stats = _load_stats()
+    stats["total_raw"] += raw_bytes
+    stats["total_compressed"] += compressed_bytes
+    stats["total_calls"] += 1
+    entry = stats["formats"].setdefault(fmt, {"raw": 0, "compressed": 0, "calls": 0})
+    entry["raw"] += raw_bytes
+    entry["compressed"] += compressed_bytes
+    entry["calls"] += 1
+    _save_stats(stats)
+
+
+def show_lifetime_stats():
+    """Print lifetime savings summary by format and total."""
+    stats = _load_stats()
+    if stats["total_calls"] == 0:
+        print("No compression stats recorded yet.")
+        return
+
+    print("jtok lifetime savings")
+    print("=" * 50)
+
+    for fmt in sorted(stats["formats"]):
+        entry = stats["formats"][fmt]
+        saved = entry["raw"] - entry["compressed"]
+        pct = (1 - entry["compressed"] / entry["raw"]) * 100 if entry["raw"] else 0
+        raw_tok = estimate_tokens("x" * entry["raw"])
+        comp_tok = estimate_tokens("x" * entry["compressed"])
+        print(f"  {fmt:5s}  {entry['calls']:>5} calls  "
+              f"saved {_human_bytes(saved):>8s} ({pct:.1f}%)  "
+              f"~{raw_tok - comp_tok} tokens saved")
+
+    total_saved = stats["total_raw"] - stats["total_compressed"]
+    total_pct = (1 - stats["total_compressed"] / stats["total_raw"]) * 100 if stats["total_raw"] else 0
+    total_tok_saved = estimate_tokens("x" * stats["total_raw"]) - estimate_tokens("x" * stats["total_compressed"])
+    print("-" * 50)
+    print(f"  total  {stats['total_calls']:>5} calls  "
+          f"saved {_human_bytes(total_saved):>8s} ({total_pct:.1f}%)  "
+          f"~{total_tok_saved} tokens saved")
+
+
+def _human_bytes(n: int) -> str:
+    """Format byte count for display."""
+    if n < 1024:
+        return f"{n}B"
+    elif n < 1024 * 1024:
+        return f"{n / 1024:.1f}KB"
+    else:
+        return f"{n / (1024 * 1024):.1f}MB"
 
 
 # ---------------------------------------------------------------------------
@@ -650,6 +729,11 @@ def main():
         {"install": cmd_install, "uninstall": cmd_uninstall, "status": cmd_status}[args.input]()
         return
 
+    # --stats without input: show lifetime stats
+    if args.stats and not args.input and sys.stdin.isatty():
+        show_lifetime_stats()
+        return
+
     # Read input
     if args.input:
         try:
@@ -690,12 +774,17 @@ def main():
             print(raw_text, end="")
             return
 
+    fmt_used = args.format or detect_format(data)
+
+    # Record to lifetime stats
+    if not args.schema:
+        record_stats(fmt_used, len(raw_text), len(compressed))
+
     if args.stats:
         raw_tokens = estimate_tokens(raw_text)
         comp_tokens = estimate_tokens(compressed)
         savings_pct = (1 - len(compressed) / len(raw_text)) * 100 if raw_text else 0
         token_savings = (1 - comp_tokens / raw_tokens) * 100 if raw_tokens else 0
-        fmt_used = args.format or detect_format(data)
         print(f"format={fmt_used} raw={len(raw_text)}B compressed={len(compressed)}B savings={savings_pct:.1f}%")
         print(f"tokens: raw~{raw_tokens} compressed~{comp_tokens} saved~{token_savings:.1f}%")
         print("---")
