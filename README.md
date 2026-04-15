@@ -9,22 +9,6 @@ Standalone utility that auto-detects JSON structure and converts to the most tok
 
 ## Install
 
-```bash
-pip install git+https://github.com/siddharthkochar/jtok.git
-```
-
-Or clone and install locally:
-
-```bash
-git clone https://github.com/siddharthkochar/jtok.git
-cd jtok
-pip install .
-```
-
-> **Prerequisite:** Python 3.8+ must be installed. Get it from [python.org](https://www.python.org/downloads/).
-
-### Quick Install (Claude Code hooks)
-
 One command to install jtok and configure Claude Code hooks:
 
 **macOS / Linux:**
@@ -38,6 +22,8 @@ irm https://raw.githubusercontent.com/siddharthkochar/jtok/main/install.ps1 | ie
 ```
 
 This downloads jtok to `~/.claude/jtok/`, installs hooks into `~/.claude/settings.json`, and starts compressing JSON automatically in Claude Code.
+
+> **Prerequisite:** Python 3.8+ must be installed. Get it from [python.org](https://www.python.org/downloads/).
 
 To uninstall: `jtok uninstall`
 
@@ -398,7 +384,7 @@ jtok ships with hooks that automatically compress JSON for [Claude Code](https:/
 
 ### Install
 
-See [Quick Install](#quick-install-claude-code) above for the recommended one-command setup.
+See [Install](#install) above for the one-command setup.
 
 ### Manage
 
