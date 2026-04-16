@@ -341,7 +341,6 @@ jtok applies compact formatting to individual values:
 | `null` | *(empty)* | Omitted |
 | `25.00` | `25` | Trailing zeros dropped |
 | `3.140000` | `3.14` | Up to 6 decimal places, trimmed |
-| `"a long string..."` | `"a long str..."` | Truncated at 80 chars |
 | `[1, 2, 3]` | `1,2,3` | Scalar lists joined |
 
 ## Other Features

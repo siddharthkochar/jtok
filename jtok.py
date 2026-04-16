@@ -28,7 +28,6 @@ from typing import Any, Optional, Union
 VERSION = "0.1.0"
 MIN_SIZE = 200          # bytes — skip files smaller than this
 MIN_SAVINGS_PCT = 15    # skip if savings below this %
-MAX_STR_LEN = 80        # truncate long strings in output
 
 
 # ---------------------------------------------------------------------------
@@ -54,18 +53,15 @@ def format_number(v: Union[int, float]) -> str:
     return str(v)
 
 
-def format_value(v: Any, max_str_len: int = MAX_STR_LEN) -> str:
-    """Format a single value for output."""
+def format_value(v: Any) -> str:
+    """Format a single value for output (lossless — strings pass through in full)."""
     if v is None:
         return ""
     if isinstance(v, bool):
         return "T" if v else "F"
     if isinstance(v, (int, float)):
         return format_number(v)
-    s = str(v)
-    if len(s) > max_str_len:
-        s = s[:max_str_len] + "..."
-    return s
+    return str(v)
 
 
 # ---------------------------------------------------------------------------
