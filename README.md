@@ -56,7 +56,7 @@ Best for: tables, logs, time series, any list of objects with the same keys.
 **Auto-detected when:** input is an array of dicts with identical keys.
 
 <table>
-<tr><th>JSON input</th><th>jtok output</th><th>Tokens saved</th></tr>
+<tr><th>JSON input</th><th>jtok output</th></tr>
 <tr>
 <td>
 
@@ -94,21 +94,15 @@ Carol,35,Lima,T
 ```
 
 </td>
-<td>
-
-```
-~63%
-187B → 68B
-```
-
-</td>
 </tr>
 </table>
+
+*~63% tokens saved (187B → 68B)*
 
 **Wrapper object with metadata + array:** When a dict contains a prominent array alongside scalar fields, the scalars become KV header lines and the array becomes CSV rows.
 
 <table>
-<tr><th>JSON input</th><th>jtok output</th><th>Tokens saved</th></tr>
+<tr><th>JSON input</th><th>jtok output</th></tr>
 <tr>
 <td>
 
@@ -137,16 +131,10 @@ id,name,price
 ```
 
 </td>
-<td>
-
-```
-~61%
-167B → 67B
-```
-
-</td>
 </tr>
 </table>
+
+*~61% tokens saved (167B → 67B)*
 
 ### KV — Flat dictionaries
 
@@ -155,7 +143,7 @@ Best for: config, status, metadata, settings — any dict without deeply nested 
 **Auto-detected when:** input is a dict with no nested dicts and no large arrays.
 
 <table>
-<tr><th>JSON input</th><th>jtok output</th><th>Tokens saved</th></tr>
+<tr><th>JSON input</th><th>jtok output</th></tr>
 <tr>
 <td>
 
@@ -177,21 +165,15 @@ host=localhost port=8080 debug=T workers=4 timeout=30
 ```
 
 </td>
-<td>
-
-```
-~35%
-81B → 53B
-```
-
-</td>
 </tr>
 </table>
+
+*~35% tokens saved (81B → 53B)*
 
 **Long KV:** When key=value pairs exceed 120 characters, they wrap into multiple lines (max ~100 chars each).
 
 <table>
-<tr><th>JSON input</th><th>jtok output</th><th>Tokens saved</th></tr>
+<tr><th>JSON input</th><th>jtok output</th></tr>
 <tr>
 <td>
 
@@ -218,16 +200,10 @@ max_connections=100 log_level=info feature_flags=dark_mode,beta_api
 ```
 
 </td>
-<td>
-
-```
-~22%
-237B → 187B
-```
-
-</td>
 </tr>
 </table>
+
+*~22% tokens saved (237B → 187B)*
 
 ### TOON — Nested and mixed structures
 
@@ -236,7 +212,7 @@ Best for: API responses, complex configs, anything with mixed nesting. TOON (Tok
 **Auto-detected when:** input has nested dicts, mixed types, or doesn't fit CSV/KV patterns.
 
 <table>
-<tr><th>JSON input</th><th>jtok output</th><th>Tokens saved</th></tr>
+<tr><th>JSON input</th><th>jtok output</th></tr>
 <tr>
 <td>
 
@@ -271,21 +247,15 @@ scripts: start=node index.js test=jest
 ```
 
 </td>
-<td>
-
-```
-~29%
-232B → 164B
-```
-
-</td>
 </tr>
 </table>
+
+*~29% tokens saved (232B → 164B)*
 
 **Deeply nested with arrays of objects:** Nested arrays of homogeneous dicts are rendered as indented CSV tables.
 
 <table>
-<tr><th>JSON input</th><th>jtok output</th><th>Tokens saved</th></tr>
+<tr><th>JSON input</th><th>jtok output</th></tr>
 <tr>
 <td>
 
@@ -320,21 +290,15 @@ inventory:
 ```
 
 </td>
-<td>
-
-```
-~44%
-253B → 143B
-```
-
-</td>
 </tr>
 </table>
+
+*~44% tokens saved (253B → 143B)*
 
 **Mixed lists:** Non-homogeneous lists render as bullet points.
 
 <table>
-<tr><th>JSON input</th><th>jtok output</th><th>Tokens saved</th></tr>
+<tr><th>JSON input</th><th>jtok output</th></tr>
 <tr>
 <td>
 
@@ -362,16 +326,10 @@ events:
 ```
 
 </td>
-<td>
-
-```
-~25%
-145B → 109B
-```
-
-</td>
 </tr>
 </table>
+
+*~25% tokens saved (145B → 109B)*
 
 ## Value Formatting
 
