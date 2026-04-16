@@ -54,7 +54,16 @@ def format_number(v: Union[int, float]) -> str:
 
 
 def format_value(v: Any) -> str:
-    """Format a single value for output (lossless — strings pass through in full)."""
+    """Format a single value for output.
+
+    Note: this is LOSSY w.r.t. a JSON roundtrip by design —
+      null  -> ""   (indistinguishable from empty string)
+      True  -> "T"  (collides with literal string "T")
+      False -> "F"  (collides with literal string "F")
+      25.00 -> "25" (loses float type)
+    Strings pass through in full. Delimiter escaping happens later in
+    csv_escape / kv_escape so structural characters don't corrupt output.
+    """
     if v is None:
         return ""
     if isinstance(v, bool):
@@ -62,6 +71,31 @@ def format_value(v: Any) -> str:
     if isinstance(v, (int, float)):
         return format_number(v)
     return str(v)
+
+
+# ---------------------------------------------------------------------------
+# Delimiter escaping for output formats
+# ---------------------------------------------------------------------------
+
+def csv_escape(s: str) -> str:
+    """Quote a CSV cell per RFC 4180 when it contains , " CR or LF."""
+    if any(c in s for c in ',"\n\r'):
+        return '"' + s.replace('"', '""') + '"'
+    return s
+
+
+def kv_escape(s: str) -> str:
+    """Quote a KV value only when it would corrupt parsing.
+
+    Quotes when the value contains `=`, CR/LF, embedded `"`, or has
+    leading/trailing whitespace. Plain spaces inside a value stay
+    unquoted — they're unambiguous as long as there's no stray `=`.
+    """
+    if not s:
+        return s
+    if '=' in s or '\n' in s or '\r' in s or '"' in s or s != s.strip():
+        return '"' + s.replace('\\', '\\\\').replace('"', '\\"') + '"'
+    return s
 
 
 # ---------------------------------------------------------------------------
@@ -76,7 +110,7 @@ def flatten_dict(d: dict, prefix: str = "") -> dict:
         if isinstance(v, dict):
             items.update(flatten_dict(v, key))
         elif isinstance(v, list) and v and all(isinstance(x, (str, int, float, bool)) for x in v):
-            items[key] = ",".join(format_value(x) for x in v)
+            items[key] = ",".join(csv_escape(format_value(x)) for x in v)
         elif isinstance(v, list):
             items[key] = f"[{len(v)} items]"
         else:
@@ -125,15 +159,41 @@ def detect_format(data: Any) -> str:
                 return "csv"
 
     if isinstance(data, dict):
+        # Dict with prominent array-of-objects field -> CSV (wrapper pattern:
+        # scalar metadata + one big list). Must be checked BEFORE _is_flat_dict
+        # since a short array-of-dicts would otherwise qualify as "flat".
+        if _find_prominent_array(data) is not None:
+            return "csv"
         # Flat dict -> KV
         if _is_flat_dict(data):
             return "kv"
-        # Dict with prominent array-of-objects field -> CSV
-        if _find_prominent_array(data) is not None:
-            return "csv"
 
     # Everything else -> TOON
     return "toon"
+
+
+# ---------------------------------------------------------------------------
+# Input parsing — JSON or JSON Lines
+# ---------------------------------------------------------------------------
+
+def parse_json_input(raw_text: str) -> Any:
+    """Parse JSON or JSON Lines (NDJSON).
+
+    Tries strict JSON first. On failure, tries JSONL: every non-empty line
+    parsed as its own JSON value, returned as a list. Raises JSONDecodeError
+    if neither form parses.
+    """
+    stripped = raw_text.strip()
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError as e:
+        lines = [l for l in stripped.split("\n") if l.strip()]
+        if len(lines) < 2:
+            raise
+        try:
+            return [json.loads(l) for l in lines]
+        except json.JSONDecodeError:
+            raise e
 
 
 # ---------------------------------------------------------------------------
@@ -260,29 +320,35 @@ def to_csv(data: Any, **opts) -> str:
                 if k != array_key:
                     if isinstance(v, dict):
                         flat = flatten_dict(v, k)
-                        header_lines.append(" ".join(f"{fk}={fv}" for fk, fv in flat.items()))
+                        header_lines.append(" ".join(f"{fk}={kv_escape(fv)}" for fk, fv in flat.items()))
                     else:
-                        header_lines.append(f"{k}={format_value(v)}")
+                        header_lines.append(f"{k}={kv_escape(format_value(v))}")
 
     if not rows or not isinstance(rows, list):
         return to_toon(data, **opts)
 
-    # Get columns from first row
+    # Union of all keys across rows so extra keys in later rows aren't silently dropped
     cols = list(rows[0].keys())
+    seen = set(cols)
+    for row in rows[1:]:
+        for k in row.keys():
+            if k not in seen:
+                cols.append(k)
+                seen.add(k)
 
     lines = []
     if header_lines:
         lines.extend(header_lines)
 
     # Column header
-    lines.append(",".join(cols))
+    lines.append(",".join(csv_escape(c) for c in cols))
 
     # Data rows
     for row in rows:
         vals = []
         for c in cols:
             v = row.get(c, "")
-            vals.append(format_value(v))
+            vals.append(csv_escape(format_value(v)))
         lines.append(",".join(vals))
 
     return "\n".join(lines)
@@ -299,7 +365,7 @@ def to_kv(data: Any, **opts) -> str:
 
     flat = flatten_dict(data)
     # Group into lines of reasonable length
-    parts = [f"{k}={v}" for k, v in flat.items()]
+    parts = [f"{k}={kv_escape(v)}" for k, v in flat.items()]
 
     # Try single line first
     single = " ".join(parts)
@@ -360,13 +426,13 @@ def to_toon(data: Any, indent: int = 0, **opts) -> str:
             if isinstance(v, (str, int, float, bool, type(None))):
                 scalars[k] = v
             elif isinstance(v, list) and v and all(isinstance(x, (str, int, float, bool, type(None))) for x in v):
-                scalars[k] = ",".join(format_value(x) for x in v)
+                scalars[k] = ",".join(csv_escape(format_value(x)) for x in v)
             else:
                 complex_fields[k] = v
 
         # Scalars as KV line
         if scalars:
-            kv_parts = [f"{k}={format_value(v)}" for k, v in scalars.items()]
+            kv_parts = [f"{k}={kv_escape(format_value(v))}" for k, v in scalars.items()]
             kv_line = " ".join(kv_parts)
             if len(kv_line) <= 120:
                 lines.append(f"{prefix}{kv_line}")
@@ -388,7 +454,7 @@ def to_toon(data: Any, indent: int = 0, **opts) -> str:
         for k, v in complex_fields.items():
             if isinstance(v, dict):
                 inner_flat = flatten_dict(v)
-                inner_parts = " ".join(f"{ik}={iv}" for ik, iv in inner_flat.items())
+                inner_parts = " ".join(f"{ik}={kv_escape(iv)}" for ik, iv in inner_flat.items())
                 if len(inner_parts) <= 100:
                     lines.append(f"{prefix}{k}: {inner_parts}")
                 else:
@@ -656,6 +722,15 @@ def cmd_uninstall() -> None:
             p.unlink()
             print(f"  Removed {p}")
 
+    # Remove PATH shims the installer scripts may have dropped
+    for shim in [
+        Path.home() / ".local" / "bin" / "jtok",
+        Path.home() / ".local" / "bin" / "jtok.bat",
+    ]:
+        if shim.exists():
+            shim.unlink()
+            print(f"  Removed {shim}")
+
     # Clean settings.json
     settings = _read_settings()
     hooks = settings.get("hooks", {})
@@ -741,9 +816,9 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    # Parse JSON
+    # Parse JSON or JSONL
     try:
-        data = json.loads(raw_text)
+        data = parse_json_input(raw_text)
     except json.JSONDecodeError:
         # Not JSON — passthrough
         print(raw_text, end="")

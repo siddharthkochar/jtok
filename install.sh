@@ -5,6 +5,7 @@ set -e
 
 REPO="https://raw.githubusercontent.com/siddharthkochar/jtok/main"
 INSTALL_DIR="$HOME/.claude/jtok"
+BIN_DIR="$HOME/.local/bin"
 
 echo "Installing jtok..."
 
@@ -14,8 +15,9 @@ if ! command -v python3 &>/dev/null; then
     exit 1
 fi
 
-# Create install directory
+# Create directories
 mkdir -p "$INSTALL_DIR/hooks"
+mkdir -p "$BIN_DIR"
 
 # Download files
 echo "  Downloading jtok.py..."
@@ -26,10 +28,22 @@ curl -fsSL "$REPO/hooks/jtok-read.sh" -o "$INSTALL_DIR/hooks/jtok-read.sh"
 curl -fsSL "$REPO/hooks/jtok-mcp.sh" -o "$INSTALL_DIR/hooks/jtok-mcp.sh"
 chmod +x "$INSTALL_DIR/hooks/jtok-read.sh" "$INSTALL_DIR/hooks/jtok-mcp.sh"
 
-# Run install
+# Create 'jtok' command on PATH
+echo "  Creating 'jtok' shim..."
+cat > "$BIN_DIR/jtok" <<EOF
+#!/usr/bin/env bash
+exec python3 "$INSTALL_DIR/jtok.py" "\$@"
+EOF
+chmod +x "$BIN_DIR/jtok"
+
+# Configure Claude Code hooks
 echo "  Configuring Claude Code hooks..."
 python3 "$INSTALL_DIR/jtok.py" install
 
 echo ""
 echo "Done! jtok is now active in Claude Code."
-echo "Run 'jtok status' to verify."
+
+case ":$PATH:" in
+    *":$BIN_DIR:"*) echo "Run 'jtok status' to verify." ;;
+    *) echo "Add $BIN_DIR to your PATH, then run 'jtok status' to verify." ;;
+esac

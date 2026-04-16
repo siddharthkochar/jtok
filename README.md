@@ -29,10 +29,13 @@ To uninstall: `jtok uninstall`
 
 ## Usage
 
+Both `jtok` (shim on `$PATH`, added by the installer) and `python3 ~/.claude/jtok/jtok.py` work interchangeably.
+
 ```bash
 # Auto-detect format (pipe or file arg)
 cat data.json | jtok
 jtok data.json
+jtok logs.jsonl         # JSON Lines / NDJSON also supported
 
 # Force a specific format
 jtok --format csv data.json
@@ -421,9 +424,15 @@ Hooks are **fail-open** — if jtok errors or savings are below threshold, the o
 ## How It Works
 
 1. **Skip check** — files < 200 bytes or single scalars pass through unchanged
-2. **Auto-detect** — analyzes JSON structure to pick CSV, KV, or TOON
-3. **Compress** — strips JSON syntax (`{}`, `[]`, `""`, repeated keys) into compact notation
-4. **Savings gate** — if compression saves < 15%, returns original unchanged
+2. **Parse** — JSON or JSON Lines (each non-empty line is a record)
+3. **Auto-detect** — analyzes structure to pick CSV, KV, or TOON
+4. **Compress** — strips JSON syntax (`{}`, `[]`, `""`, repeated keys) into compact notation; RFC 4180 quoting in CSV cells and minimal quoting in KV values when delimiters appear
+5. **Savings gate** — if compression saves < 15%, returns original unchanged
+
+### Data fidelity
+
+The compressed output is **not round-trippable back to JSON**. By design:
+`null` becomes empty, `true`/`false` become `T`/`F` (collides with literal strings `"T"`/`"F"`), and `25.00` becomes `25` (loses float type). Use jtok for LLM context, not as a JSON serializer.
 
 ## Requirements
 

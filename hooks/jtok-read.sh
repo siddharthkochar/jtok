@@ -8,8 +8,15 @@ JTOK_PATH="__JTOK_PATH__"
 {
     input=$(cat)
 
-    # Extract file_path with grep (avoids python subprocess for parsing)
-    file_path=$(echo "$input" | grep -oP '"file_path"\s*:\s*"\K[^"]+')
+    # Extract file_path (python is portable across macOS/Linux; BSD grep has no -P)
+    file_path=$(printf '%s' "$input" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    print(d.get('tool_input', {}).get('file_path', ''))
+except Exception:
+    pass
+" 2>/dev/null)
     [ -z "$file_path" ] && exit 0
 
     # Only process .json files
@@ -27,7 +34,7 @@ JTOK_PATH="__JTOK_PATH__"
     [ "${file_size:-0}" -lt 200 ] && exit 0
 
     # Run jtok
-    result=$(python "$JTOK_PATH" "$file_path" 2>/dev/null)
+    result=$(python3 "$JTOK_PATH" "$file_path" 2>/dev/null)
     [ $? -ne 0 ] && exit 0
     [ -z "$result" ] && exit 0
 
@@ -39,7 +46,7 @@ JTOK_PATH="__JTOK_PATH__"
     savings_pct=$(( (file_size - result_len) * 100 / file_size ))
 
     # Build JSON output (python needed for safe JSON string encoding)
-    python -c "
+    python3 -c "
 import json, sys
 result = sys.stdin.read()
 print(json.dumps({
