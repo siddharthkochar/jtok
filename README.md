@@ -97,7 +97,7 @@ Carol,35,Lima,T
 </tr>
 </table>
 
-*~63% tokens saved (187B → 68B)*
+**~63% tokens saved (187B → 68B)**
 
 **Wrapper object with metadata + array:** When a dict contains a prominent array alongside scalar fields, the scalars become KV header lines and the array becomes CSV rows.
 
@@ -134,7 +134,7 @@ id,name,price
 </tr>
 </table>
 
-*~61% tokens saved (167B → 67B)*
+**~61% tokens saved (167B → 67B)**
 
 ### KV — Flat dictionaries
 
@@ -168,7 +168,7 @@ host=localhost port=8080 debug=T workers=4 timeout=30
 </tr>
 </table>
 
-*~35% tokens saved (81B → 53B)*
+**~35% tokens saved (81B → 53B)**
 
 **Long KV:** When key=value pairs exceed 120 characters, they wrap into multiple lines (max ~100 chars each).
 
@@ -203,7 +203,7 @@ max_connections=100 log_level=info feature_flags=dark_mode,beta_api
 </tr>
 </table>
 
-*~22% tokens saved (237B → 187B)*
+**~22% tokens saved (237B → 187B)**
 
 ### TOON — Nested and mixed structures
 
@@ -250,7 +250,7 @@ scripts: start=node index.js test=jest
 </tr>
 </table>
 
-*~29% tokens saved (232B → 164B)*
+**~29% tokens saved (232B → 164B)**
 
 **Deeply nested with arrays of objects:** Nested arrays of homogeneous dicts are rendered as indented CSV tables.
 
@@ -293,7 +293,7 @@ inventory:
 </tr>
 </table>
 
-*~44% tokens saved (253B → 143B)*
+**~44% tokens saved (253B → 143B)**
 
 **Mixed lists:** Non-homogeneous lists render as bullet points.
 
@@ -329,7 +329,7 @@ events:
 </tr>
 </table>
 
-*~25% tokens saved (145B → 109B)*
+**~25% tokens saved (145B → 109B)**
 
 ## Value Formatting
 
